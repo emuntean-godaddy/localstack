@@ -1,4 +1,5 @@
 import json
+import base64
 import logging
 import threading
 from abc import ABC
@@ -177,7 +178,14 @@ class EventSourceAsfAdapter(EventSourceAdapter):
     ) -> int:
         # split ARN ( a bit unnecessary since we build an ARN again in the service)
         fn_parts = api_utils.FULL_FN_ARN_PATTERN.search(function_arn).groupdict()
-
+        payload=replace_binary_data(payload)
+        print("-----------DEBUG-------------------------")
+        print(fn_parts)
+        print(function_arn)
+        print(context)
+        print(payload)
+        print(invocation_type)
+        print("--------------END------------------------")
         try:
             ft = self.lambda_service.invoke(
                 # basically function ARN
@@ -244,3 +252,15 @@ class EventSourceAsfAdapter(EventSourceAdapter):
                     ):
                         results.append(esm.copy())
         return results
+
+
+def replace_binary_data(obj):
+    """A recursive function to replace binary data with Base64-encoded strings."""
+    if isinstance(obj, bytes):
+        return base64.b64encode(obj).decode('utf-8')
+    elif isinstance(obj, dict):
+        return {k: replace_binary_data(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_binary_data(i) for i in obj]
+    else:
+        return obj
